@@ -7,6 +7,7 @@ def process_textures(image_paths, output_path):
     all_rects = []
     all_images = []
 
+    # # # LOADING IMAGES # # #
     for image_path in image_paths:
         # Load the image
         image = Image.open(image_path)
@@ -19,6 +20,8 @@ def process_textures(image_paths, output_path):
         
         all_images.append(image_np)
 
+    # # # IDENTIFYING BOUNDING BOXES # # #
+    for i, image_np in enumerate(all_images):
         # Check if the image is fully opaque
         if np.all(image_np[:, :, 3] == 255):
             # Treat the entire image as a single rectangle
@@ -38,11 +41,12 @@ def process_textures(image_paths, output_path):
                 rects = [(0, 0, image_np.shape[1], image_np.shape[0])]
 
         # Store rectangles with their corresponding image index
-        all_rects.extend([(rect, len(all_images) - 1) for rect in rects])
+        all_rects.extend([(rect, i) for rect in rects])
 
     # Sort rectangles by height (largest to smallest)
     all_rects = sorted(all_rects, key=lambda x: x[0][3], reverse=True)
-
+    
+    # # # PACK RECTANGLES # # #
     # Initialize free rectangles with one big rectangle
     max_width = max(image.shape[1] for image in all_images)
     max_height = sum(image.shape[0] for image in all_images)
@@ -84,6 +88,7 @@ def process_textures(image_paths, output_path):
             if new_free_rect[2] > 0 and new_free_rect[3] > 0:
                 free_rects.append(new_free_rect)
 
+    # # # GENERATE IMAGE # # #
     # Create a new packed image with the calculated size
     max_width = max(px + pw for px, py, pw, ph, ox, oy, img_idx in packed_positions)
     max_height = max(py + ph for px, py, pw, ph, ox, oy, img_idx in packed_positions)
