@@ -3,24 +3,25 @@ from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
 import cv2
 
-def process_textures(image_paths, output_path):
-    all_rects = []
-    all_images = []
 
-    # # # LOADING IMAGES # # #
+def load_images(image_paths):
+    all_images = []
     for image_path in image_paths:
-        # Load the image
         image = Image.open(image_path)
         image_np = np.array(image)
-
         # Add an alpha channel if it doesn't exist
         if image_np.shape[2] == 3:
             alpha_channel = np.ones((image_np.shape[0], image_np.shape[1], 1), dtype=np.uint8) * 255
             image_np = np.concatenate((image_np, alpha_channel), axis=2)
-        
         all_images.append(image_np)
+    return all_images
+
+
+def process_textures(image_paths, output_path):
+    all_images = load_images(image_paths)
 
     # # # IDENTIFYING BOUNDING BOXES # # #
+    all_rects = []
     for i, image_np in enumerate(all_images):
         # Check if the image is fully opaque
         if np.all(image_np[:, :, 3] == 255):
@@ -104,7 +105,6 @@ def process_textures(image_paths, output_path):
     # Save the packed image
     packed_image_pil.save(output_path)
     print(f"Packed image saved to {output_path}")
-
 
 def open_file_dialog():
     file_paths = filedialog.askopenfilenames(filetypes=[
