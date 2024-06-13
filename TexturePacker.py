@@ -111,17 +111,21 @@ def open_file_dialog():
         ("GIF files", "*.gif"),
         ("All files", "*.*")
     ])
-    if file_paths:
-        output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
-            ("PNG files", "*.png"),
-            ("JPEG files", "*.jpg;*.jpeg"),
-            ("BMP files", "*.bmp"),
-            ("TIFF files", "*.tiff"),
-            ("GIF files", "*.gif"),
-            ("All files", "*.*")
-        ])
-        if output_path:
-            process_textures(file_paths, output_path)
+    # TODO: extract save_file_dialog()
+    if not file_paths:
+        return
+    output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
+        ("PNG files", "*.png"),
+        ("JPEG files", "*.jpg;*.jpeg"),
+        ("BMP files", "*.bmp"),
+        ("TIFF files", "*.tiff"),
+        ("GIF files", "*.gif"),
+        ("All files", "*.*")
+    ])
+    # TODO: extract checks and process_textures() call
+    if not output_path:
+        return
+    process_textures(file_paths, output_path)
 
 if __name__ == "__main__":
     root = Tk()
