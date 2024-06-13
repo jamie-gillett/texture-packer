@@ -3,7 +3,7 @@ from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
 import cv2
 
-def pack_rectangles(image_paths, output_path):
+def process_textures(image_paths, output_path):
     all_rects = []
     all_images = []
 
@@ -121,7 +121,7 @@ def open_file_dialog():
             ("All files", "*.*")
         ])
         if output_path:
-            pack_rectangles(file_paths, output_path)
+            process_textures(file_paths, output_path)
 
 if __name__ == "__main__":
     root = Tk()
