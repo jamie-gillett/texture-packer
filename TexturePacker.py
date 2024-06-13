@@ -37,24 +37,17 @@ def identify_bounding_boxes(images):
     return bounding_boxes
 
 
-def process_textures(image_paths, output_path):
-    all_images = load_images(image_paths)
-    bouding_boxes = identify_bounding_boxes(all_images)
-    
-    # # # PACK RECTANGLES # # #
+def pack(all_images, bounding_boxes):
+    packed_positions = []
     # Initialize free rectangles with one big rectangle
     max_width = max(image.shape[1] for image in all_images)
     max_height = sum(image.shape[0] for image in all_images)
     free_rects = [(0, 0, max_width, max_height)]
-
-    packed_positions = []
-
-    for rect, img_idx in bouding_boxes:
+    for rect, img_idx in bounding_boxes:
         w, h = rect[2], rect[3]
         best_free_rect = None
         best_free_rect_idx = -1
         best_fit = None
-
         # Find the best fitting free rectangle
         for i, free_rect in enumerate(free_rects):
             fw, fh = free_rect[2], free_rect[3]
@@ -64,24 +57,27 @@ def process_textures(image_paths, output_path):
                     best_fit = fit
                     best_free_rect = free_rect
                     best_free_rect_idx = i
-
         if best_free_rect is None:
             continue
-
         # Place the rectangle in the best fitting free rectangle
         fx, fy, fw, fh = best_free_rect
         packed_positions.append((fx, fy, w, h, rect[0], rect[1], img_idx))
-
         # Split the free rectangle
         new_free_rects = []
         new_free_rects.append((fx + w, fy, fw - w, h))  # Right part
         new_free_rects.append((fx, fy + h, fw, fh - h))  # Bottom part
-
         # Replace the used free rectangle
         free_rects.pop(best_free_rect_idx)
         for new_free_rect in new_free_rects:
             if new_free_rect[2] > 0 and new_free_rect[3] > 0:
                 free_rects.append(new_free_rect)
+    return packed_positions
+
+
+def process_textures(image_paths, output_path):
+    all_images = load_images(image_paths)
+    bounding_boxes = identify_bounding_boxes(all_images)
+    packed_positions = pack(all_images, bounding_boxes)
 
     # # # GENERATE IMAGE # # #
     # Create a new packed image with the calculated size
