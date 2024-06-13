@@ -1,23 +1,17 @@
 import numpy as np
 from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
-from tkinter.ttk import Progressbar
 import cv2
 
-def pack_rectangles(image_paths, output_path, status_label, progress_bar):
+def pack_rectangles(image_paths, output_path, status_label):
     all_rects = []
     all_images = []
 
     total_images = len(image_paths)
-    progress_bar['maximum'] = total_images
-    progress = 0
 
     for image_path in image_paths:
-        # Update status and progress bar
-        progress += 1
-        status_label.config(text=f"Processing {image_path} ({progress}/{total_images})")
-        progress_bar['value'] = progress
-        root.update_idletasks()
+        # Update status
+        status_label.config(text=f"Processing {image_path}")
 
         # Load the image
         image = Image.open(image_path)
@@ -113,7 +107,6 @@ def pack_rectangles(image_paths, output_path, status_label, progress_bar):
 
     # Update status
     status_label.config(text=f"Packed image saved to {output_path}")
-    progress_bar['value'] = 0
 
 def open_file_dialog():
     file_paths = filedialog.askopenfilenames(filetypes=[
@@ -135,7 +128,7 @@ def open_file_dialog():
             ("All files", "*.*")
         ])
         if output_path:
-            pack_rectangles(file_paths, output_path, status_label, progress_bar)
+            pack_rectangles(file_paths, output_path, status_label)
 
 if __name__ == "__main__":
     root = Tk()
@@ -150,8 +143,5 @@ if __name__ == "__main__":
 
     status_label = Label(root, text="", wraplength=350, justify="center")
     status_label.pack(pady=10)
-
-    progress_bar = Progressbar(root, orient="horizontal", length=300, mode="determinate")
-    progress_bar.pack(pady=10)
 
     root.mainloop()
