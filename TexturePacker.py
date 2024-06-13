@@ -3,16 +3,11 @@ from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
 import cv2
 
-def pack_rectangles(image_paths, output_path, status_label):
+def pack_rectangles(image_paths, output_path):
     all_rects = []
     all_images = []
 
-    total_images = len(image_paths)
-
     for image_path in image_paths:
-        # Update status
-        status_label.config(text=f"Processing {image_path}")
-
         # Load the image
         image = Image.open(image_path)
         image_np = np.array(image)
@@ -105,8 +100,6 @@ def pack_rectangles(image_paths, output_path, status_label):
     packed_image_pil.save(output_path)
     print(f"Packed image saved to {output_path}")
 
-    # Update status
-    status_label.config(text=f"Packed image saved to {output_path}")
 
 def open_file_dialog():
     file_paths = filedialog.askopenfilenames(filetypes=[
@@ -128,7 +121,7 @@ def open_file_dialog():
             ("All files", "*.*")
         ])
         if output_path:
-            pack_rectangles(file_paths, output_path, status_label)
+            pack_rectangles(file_paths, output_path)
 
 if __name__ == "__main__":
     root = Tk()
@@ -140,8 +133,5 @@ if __name__ == "__main__":
 
     button = Button(root, text="Browse", command=open_file_dialog)
     button.pack(pady=10)
-
-    status_label = Label(root, text="", wraplength=350, justify="center")
-    status_label.pack(pady=10)
 
     root.mainloop()
