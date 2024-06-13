@@ -17,12 +17,9 @@ def load_images(image_paths):
     return all_images
 
 
-def process_textures(image_paths, output_path):
-    all_images = load_images(image_paths)
-
-    # # # IDENTIFYING BOUNDING BOXES # # #
-    all_rects = []
-    for i, image_np in enumerate(all_images):
+def identify_bounding_boxes(images):
+    bounding_boxes = []
+    for i, image_np in enumerate(images):
         # Check if the image is fully opaque
         if np.all(image_np[:, :, 3] == 255):
             # Treat the entire image as a single rectangle
@@ -30,22 +27,19 @@ def process_textures(image_paths, output_path):
         else:
             gray = cv2.cvtColor(image_np, cv2.COLOR_RGBA2GRAY)
             _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-
-            # Find contours
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-            # Get bounding rectangles for each contour
-            rects = [cv2.boundingRect(cnt) for cnt in contours]
-
+            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Find contours
+            rects = [cv2.boundingRect(cnt) for cnt in contours] # Get bounding rectangles for each contour
             # Ensure at least one rectangle
             if not rects:
                 rects = [(0, 0, image_np.shape[1], image_np.shape[0])]
+        bounding_boxes.extend([(rect, i) for rect in rects]) # Store rectangles with their corresponding image index
+    bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort rectangles by height (largest to smallest)
+    return bounding_boxes
 
-        # Store rectangles with their corresponding image index
-        all_rects.extend([(rect, i) for rect in rects])
 
-    # Sort rectangles by height (largest to smallest)
-    all_rects = sorted(all_rects, key=lambda x: x[0][3], reverse=True)
+def process_textures(image_paths, output_path):
+    all_images = load_images(image_paths)
+    bouding_boxes = identify_bounding_boxes(all_images)
     
     # # # PACK RECTANGLES # # #
     # Initialize free rectangles with one big rectangle
@@ -55,7 +49,7 @@ def process_textures(image_paths, output_path):
 
     packed_positions = []
 
-    for rect, img_idx in all_rects:
+    for rect, img_idx in bouding_boxes:
         w, h = rect[2], rect[3]
         best_free_rect = None
         best_free_rect_idx = -1
@@ -105,6 +99,7 @@ def process_textures(image_paths, output_path):
     # Save the packed image
     packed_image_pil.save(output_path)
     print(f"Packed image saved to {output_path}")
+
 
 def open_file_dialog():
     file_paths = filedialog.askopenfilenames(filetypes=[
