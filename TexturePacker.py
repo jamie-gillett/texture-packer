@@ -74,27 +74,24 @@ def pack(all_images, bounding_boxes):
     return packed_positions
 
 
-def process_textures(image_paths, output_path):
-    all_images = load_images(image_paths)
-    bounding_boxes = identify_bounding_boxes(all_images)
-    packed_positions = pack(all_images, bounding_boxes)
-
-    # # # GENERATE IMAGE # # #
+def generate_image(all_images, packed_positions):
     # Create a new packed image with the calculated size
     max_width = max(px + pw for px, py, pw, ph, ox, oy, img_idx in packed_positions)
     max_height = max(py + ph for px, py, pw, ph, ox, oy, img_idx in packed_positions)
     packed_image = np.zeros((max_height, max_width, 4), dtype=np.uint8)
-
     # Place rectangles into the packed image
     for px, py, pw, ph, ox, oy, img_idx in packed_positions:
         packed_image[py:py+ph, px:px+pw] = all_images[img_idx][oy:oy+ph, ox:ox+pw]
+    packed_image_pil = Image.fromarray(packed_image) # Convert back to Image
+    return packed_image_pil
 
-    # Convert back to Image
-    packed_image_pil = Image.fromarray(packed_image)
 
-    # Save the packed image
-    packed_image_pil.save(output_path)
-    print(f"Packed image saved to {output_path}")
+def process_textures(image_paths, output_path):
+    all_images = load_images(image_paths)
+    bounding_boxes = identify_bounding_boxes(all_images)
+    packed_positions = pack(all_images, bounding_boxes)
+    output_image = generate_image(all_images, packed_positions)
+    output_image.save(output_path) # Save the packed image
 
 
 def open_file_dialog():
