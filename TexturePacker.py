@@ -27,19 +27,15 @@ class Packer:
             # Check if the image is fully opaque
             if np.all(image_array[:, :, 3] == 255):
                 # Treat the entire image as a single box
-                # boxes = [((0, 0, image_array.shape[1], image_array.shape[0]),i)]  # ((x-offset, y-offset, width, height), image index)
                 boxes = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)]  # ((x-offset, y-offset), (width, height), image index)
             else:
                 gray = cv2.cvtColor(image_array, cv2.COLOR_RGBA2GRAY)
                 _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
                 contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                # boxes = [((x,y,w,h),i) for x,y,w,h in [cv2.boundingRect(contour) for contour in contours]]
                 boxes = [((x,y),(w,h),i) for x,y,w,h in [cv2.boundingRect(contour) for contour in contours]]
                 if not boxes:
-                    # boxes = [((0, 0, image_array.shape[1], image_array.shape[0]),i)] # Ensure at least one bounding box
                     boxes = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)] # Ensure at least one bounding box
             bounding_boxes.extend(boxes)
-        # bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort bounding_boxes by height (largest to smallest)
         bounding_boxes = sorted(bounding_boxes, key=lambda x: x[1][1], reverse=True) # Sort bounding_boxes by height (largest to smallest)
         coordinates, dimensions, image_indices = [_ for _ in list(zip(*bounding_boxes))]
         return coordinates, dimensions, image_indices
@@ -50,12 +46,12 @@ class Packer:
         height = sum(image.shape[0] for image in images)
         return width, height
 
-    def pack(self, bounds, boxes):
+    def pack(self, bounds, box_dimensions):
         if self.verbose: print("pack")
         new_coordinates = []
         max_width, max_height = bounds
         empty_areas = [((0, 0), (max_width, max_height))]
-        for box in boxes:
+        for box in box_dimensions:
             box_width, box_height = box[0], box[1]
             best_empty_area = None
             best_empty_area_index = -1
@@ -72,13 +68,14 @@ class Packer:
             if best_empty_area is None:
                 continue
             # Place the rectangle in the best fitting free rectangle
-            new_coordiante = empty_area[0]
-            new_coordinates.append(new_coordiante)
+            coordinates_best, dimensions_best = best_empty_area
+            new_coordinates.append(coordinates_best)
             # Split the free rectangle
             empty_area_splits = []
-            new_x, new_y = new_coordiante
-            empty_area_splits.append(((new_x + box_width, new_y), (test_width - box_width, box_height)))  # Right part
-            empty_area_splits.append(((new_x, new_y + box_height), (test_width, test_height - box_height)))  # Bottom part
+            x_best, y_best = coordinates_best
+            width_best, height_best = dimensions_best
+            empty_area_splits.append(((x_best + box_width, y_best), (width_best - box_width, box_height)))  # Right part
+            empty_area_splits.append(((x_best, y_best + box_height), (width_best, height_best - box_height)))  # Bottom part
             # Replace the used free rectangle
             empty_areas.pop(best_empty_area_index)
             for area_split in empty_area_splits:
@@ -100,8 +97,6 @@ class Packer:
             new_x, new_y = new_coordinates[i]
             image_id = image_indices[i]
             new_image_array[new_y:new_y+height, new_x:new_x+width] = images[image_id][old_y:old_y+height, old_x:old_x+width]
-        # for px, py, pw, ph, ox, oy, img_idx in packed_positions:
-            # new_image_array[py:py+ph, px:px+pw] = images[img_idx][oy:oy+ph, ox:ox+pw]
         new_image = Image.fromarray(new_image_array) # Convert back to Image
         return new_image
 
