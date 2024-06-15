@@ -3,6 +3,12 @@ from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
 import cv2
 
+# TODO: Go through and clean up code
+# TODO: Replace packing bounds calculation
+# TODO: Replace packing algorithm
+# TODO: Create proper print outs for verbose (incl. formatting)
+# TODO: Prettify the GUI and add some polish (incl. taking over the print outputs)
+
 class Packer:
     def __init__(self, verbose=True) -> None:
         self.verbose = verbose
@@ -110,6 +116,9 @@ class Packer:
 
 
 
+
+
+
 class PackerGUI:
     def __init__(self) -> None:
         self.filepaths = None
@@ -121,24 +130,18 @@ class PackerGUI:
         root = Tk()
         root.title("Texture Packer")
         root.geometry("400x250")
-
         self.input_label = Label(root, text="Select image files to pack", wraplength=350, justify="center")
         self.input_label.pack(pady=10)
-
         self.open_button = Button(root, text="Select Files", command=self.open_files)
-        self.open_button.pack(pady=10)
-        
+        self.open_button.pack(pady=10)        
         self.output_label = Label(root, text="Select output path", wraplength=350, justify="center")
         self.output_label.pack(pady=10)
-
         self.savepath_button = Button(root, text="Save Location", command=self.save_path)
         self.savepath_button.pack(pady=10)
-
         self.run_button = Button(root, text="Run", command=self.run)
-        self.run_button.pack(pady=10)
-        
+        self.run_button.pack(pady=10)        
         return root
-    
+
     def start(self):
         self.root.mainloop()
 
