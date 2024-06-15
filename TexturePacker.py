@@ -3,98 +3,96 @@ from PIL import Image
 from tkinter import Tk, Label, Button, filedialog
 import cv2
 
+class Packer:
+    def __init__(self, verbose=True) -> None:
+        self.verbose = verbose
 
-# PACKER
-def load_images(image_paths):
-    images = []
-    for image_path in image_paths:
-        image = Image.open(image_path)
-        image_np = np.array(image)
-        # Add an alpha channel if it doesn't exist
-        if image_np.shape[2] == 3:
-            alpha_channel = np.ones((image_np.shape[0], image_np.shape[1], 1), dtype=np.uint8) * 255
-            image_np = np.concatenate((image_np, alpha_channel), axis=2)
-        images.append(image_np)
-    return images
+    def load_images(self, image_paths):
+        images = []
+        for image_path in image_paths:
+            image = Image.open(image_path)
+            image_np = np.array(image)
+            # Add an alpha channel if it doesn't exist
+            if image_np.shape[2] == 3:
+                alpha_channel = np.ones((image_np.shape[0], image_np.shape[1], 1), dtype=np.uint8) * 255
+                image_np = np.concatenate((image_np, alpha_channel), axis=2)
+            images.append(image_np)
+        return images
 
-# PACKER
-def identify_bounding_boxes(images):
-    bounding_boxes = []
-    for i, image_np in enumerate(images):
-        # Check if the image is fully opaque
-        if np.all(image_np[:, :, 3] == 255):
-            # Treat the entire image as a single rectangle
-            boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]  # Use the height and width of the image
-        else:
-            gray = cv2.cvtColor(image_np, cv2.COLOR_RGBA2GRAY)
-            _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Find contours
-            boxes = [cv2.boundingRect(cnt) for cnt in contours] # Get bounding rectangles for each contour
-            # Ensure at least one rectangle
-            if not boxes:
-                boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]
-        bounding_boxes.extend([(rect, i) for rect in boxes]) # Store rectangles with their corresponding image index
-    bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort rectangles by height (largest to smallest)
-    return bounding_boxes
+    def identify_bounding_boxes(self, images):
+        bounding_boxes = []
+        for i, image_np in enumerate(images):
+            # Check if the image is fully opaque
+            if np.all(image_np[:, :, 3] == 255):
+                # Treat the entire image as a single rectangle
+                boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]  # Use the height and width of the image
+            else:
+                gray = cv2.cvtColor(image_np, cv2.COLOR_RGBA2GRAY)
+                _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
+                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Find contours
+                boxes = [cv2.boundingRect(cnt) for cnt in contours] # Get bounding rectangles for each contour
+                # Ensure at least one rectangle
+                if not boxes:
+                    boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]
+            bounding_boxes.extend([(rect, i) for rect in boxes]) # Store rectangles with their corresponding image index
+        bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort rectangles by height (largest to smallest)
+        return bounding_boxes
 
-# PACKER
-def pack(all_images, bounding_boxes):
-    packed_positions = []
-    # Initialize free rectangles with one big rectangle
-    # TODO possible extract new image size function and pass in size as an argument
-    max_width = max(image.shape[1] for image in all_images)
-    max_height = sum(image.shape[0] for image in all_images) # If the heigh is based on the images and not the boxes, can I break this?
-    empty_areas = [(0, 0, max_width, max_height)]
-    for box, image_index in bounding_boxes:
-        w, h = box[2], box[3]
-        best_empty_area = None
-        best_empty_area_index = -1
-        best_fit = None
-        # Find the best fitting free rectangle
-        for i, empty_area in enumerate(empty_areas):
-            fw, fh = empty_area[2], empty_area[3]
-            if fw >= w and fh >= h:
-                fit = (fw - w) * (fh - h)
-                if best_fit is None or fit < best_fit:
-                    best_fit = fit
-                    best_empty_area = empty_area
-                    best_empty_area_index = i
-        if best_empty_area is None:
-            # how would you get here?!
-            continue
-        # Place the rectangle in the best fitting free rectangle
-        fx, fy, fw, fh = best_empty_area
-        packed_positions.append((fx, fy, w, h, box[0], box[1], image_index))
-        # Split the free rectangle
-        new_free_rects = []
-        new_free_rects.append((fx + w, fy, fw - w, h))  # Right part
-        new_free_rects.append((fx, fy + h, fw, fh - h))  # Bottom part
-        # Replace the used free rectangle
-        empty_areas.pop(best_empty_area_index)
-        for new_free_rect in new_free_rects:
-            if new_free_rect[2] > 0 and new_free_rect[3] > 0:
-                empty_areas.append(new_free_rect)
-    return packed_positions
+    def pack(self, all_images, bounding_boxes):
+        packed_positions = []
+        # Initialize free rectangles with one big rectangle
+        # TODO possible extract new image size function and pass in size as an argument
+        max_width = max(image.shape[1] for image in all_images)
+        max_height = sum(image.shape[0] for image in all_images) # If the height is based on the images and not the boxes, can I break this?
+        empty_areas = [(0, 0, max_width, max_height)]
+        for box, image_index in bounding_boxes:
+            w, h = box[2], box[3]
+            best_empty_area = None
+            best_empty_area_index = -1
+            best_fit = None
+            # Find the best fitting free rectangle
+            for i, empty_area in enumerate(empty_areas):
+                fw, fh = empty_area[2], empty_area[3]
+                if fw >= w and fh >= h:
+                    fit = (fw - w) * (fh - h)
+                    if best_fit is None or fit < best_fit:
+                        best_fit = fit
+                        best_empty_area = empty_area
+                        best_empty_area_index = i
+            if best_empty_area is None:
+                # how would you get here?!
+                continue
+            # Place the rectangle in the best fitting free rectangle
+            fx, fy, fw, fh = best_empty_area
+            packed_positions.append((fx, fy, w, h, box[0], box[1], image_index))
+            # Split the free rectangle
+            new_free_rects = []
+            new_free_rects.append((fx + w, fy, fw - w, h))  # Right part
+            new_free_rects.append((fx, fy + h, fw, fh - h))  # Bottom part
+            # Replace the used free rectangle
+            empty_areas.pop(best_empty_area_index)
+            for new_free_rect in new_free_rects:
+                if new_free_rect[2] > 0 and new_free_rect[3] > 0:
+                    empty_areas.append(new_free_rect)
+        return packed_positions
 
-# PACKER
-def generate_image(all_images, packed_positions):
-    # Create a new packed image with the calculated size
-    max_width = max(px + pw for px, py, pw, ph, ox, oy, img_idx in packed_positions)
-    max_height = max(py + ph for px, py, pw, ph, ox, oy, img_idx in packed_positions)
-    packed_image_np = np.zeros((max_height, max_width, 4), dtype=np.uint8)
-    # Place rectangles into the packed image
-    for px, py, pw, ph, ox, oy, img_idx in packed_positions:
-        packed_image_np[py:py+ph, px:px+pw] = all_images[img_idx][oy:oy+ph, ox:ox+pw]
-    packed_image = Image.fromarray(packed_image_np) # Convert back to Image
-    return packed_image
+    def generate_image(self, all_images, packed_positions):
+        # Create a new packed image with the calculated size
+        max_width = max(px + pw for px, py, pw, ph, ox, oy, img_idx in packed_positions)
+        max_height = max(py + ph for px, py, pw, ph, ox, oy, img_idx in packed_positions)
+        packed_image_np = np.zeros((max_height, max_width, 4), dtype=np.uint8)
+        # Place rectangles into the packed image
+        for px, py, pw, ph, ox, oy, img_idx in packed_positions:
+            packed_image_np[py:py+ph, px:px+pw] = all_images[img_idx][oy:oy+ph, ox:ox+pw]
+        packed_image = Image.fromarray(packed_image_np) # Convert back to Image
+        return packed_image
 
-# PACKER
-def process_textures(image_paths):
-    all_images = load_images(image_paths)
-    bounding_boxes = identify_bounding_boxes(all_images)
-    packed_positions = pack(all_images, bounding_boxes)
-    output_image = generate_image(all_images, packed_positions)
-    return output_image
+    def process_textures(self, image_paths):
+        all_images = self.load_images(image_paths)
+        bounding_boxes = self.identify_bounding_boxes(all_images)
+        packed_positions = self.pack(all_images, bounding_boxes)
+        output_image = self.generate_image(all_images, packed_positions)
+        return output_image
 
 
 
@@ -103,6 +101,7 @@ class PackerGUI:
         self.filepaths = None
         self.output_path = None
         self.root = self.app_setup()
+        self.packer = Packer()
         
     def app_setup(self):
         root = Tk()
@@ -159,7 +158,7 @@ class PackerGUI:
         if not (self.filepaths and self.output_path):
             print("<!> Need to select both input images and output path.")
             return
-        self.output_image = process_textures(self.filepaths) # saved as instance variable in case decide to separate saving
+        self.output_image = self.packer.process_textures(self.filepaths) # saved as instance variable in case decide to separate saving
         self.output_image.save(self.output_path)
         print("Job done.")
         self.filepaths = None
