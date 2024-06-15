@@ -8,34 +8,33 @@ class Packer:
         self.verbose = verbose
 
     def load_images(self, image_paths):
-        images = []
+        image_arrays = []
         for image_path in image_paths:
             image = Image.open(image_path)
-            image_np = np.array(image)
+            image_array = np.array(image)
             # Add an alpha channel if it doesn't exist
-            if image_np.shape[2] == 3:
-                alpha_channel = np.ones((image_np.shape[0], image_np.shape[1], 1), dtype=np.uint8) * 255
-                image_np = np.concatenate((image_np, alpha_channel), axis=2)
-            images.append(image_np)
-        return images
+            if image_array.shape[2] == 3:
+                alpha_channel = np.ones((image_array.shape[0], image_array.shape[1], 1), dtype=np.uint8) * 255
+                image_array = np.concatenate((image_array, alpha_channel), axis=2)
+            image_arrays.append(image_array)
+        return image_arrays
 
-    def identify_bounding_boxes(self, images):
+    def identify_bounding_boxes(self, image_arrays):
         bounding_boxes = []
-        for i, image_np in enumerate(images):
+        for i, image_array in enumerate(image_arrays):
             # Check if the image is fully opaque
-            if np.all(image_np[:, :, 3] == 255):
-                # Treat the entire image as a single rectangle
-                boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]  # Use the height and width of the image
+            if np.all(image_array[:, :, 3] == 255):
+                # Treat the entire image as a single box
+                boxes = [(0, 0, image_array.shape[1], image_array.shape[0])]  # x-offset, y-offset, width, height
             else:
-                gray = cv2.cvtColor(image_np, cv2.COLOR_RGBA2GRAY)
+                gray = cv2.cvtColor(image_array, cv2.COLOR_RGBA2GRAY)
                 _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Find contours
-                boxes = [cv2.boundingRect(cnt) for cnt in contours] # Get bounding rectangles for each contour
-                # Ensure at least one rectangle
+                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                boxes = [cv2.boundingRect(contour) for contour in contours]
                 if not boxes:
-                    boxes = [(0, 0, image_np.shape[1], image_np.shape[0])]
-            bounding_boxes.extend([(rect, i) for rect in boxes]) # Store rectangles with their corresponding image index
-        bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort rectangles by height (largest to smallest)
+                    boxes = [(0, 0, image_array.shape[1], image_array.shape[0])] # Ensure at least one boudning box
+            bounding_boxes.extend([(box, i) for box in boxes]) # Store bounding boxes with their corresponding image index
+        bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort bounding_boxes by height (largest to smallest)
         return bounding_boxes
 
     def pack(self, all_images, bounding_boxes):
@@ -153,7 +152,7 @@ class PackerGUI:
         ])
         if self.output_path:
             self.output_label.config(text="Output Path Selected")
-            
+
     def run(self):
         if not (self.filepaths and self.output_path):
             print("<!> Need to select both input images and output path.")
