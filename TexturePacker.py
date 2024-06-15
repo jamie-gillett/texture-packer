@@ -89,13 +89,6 @@ def generate_image(all_images, packed_positions):
     return packed_image
 
 
-# GUI
-def process_textures(image_paths, output_path):
-    all_images = load_images(image_paths)
-    bounding_boxes = identify_bounding_boxes(all_images)
-    packed_positions = pack(all_images, bounding_boxes)
-    output_image = generate_image(all_images, packed_positions)
-    output_image.save(output_path) # Save the packed image
 
 
 class PackerGUI:
@@ -112,8 +105,8 @@ class PackerGUI:
         label = Label(root, text="Select image files to pack", wraplength=350, justify="center")
         label.pack(pady=10)
 
-        button = Button(root, text="Select Files", command=open_file_dialog)
-        button.pack(pady=10)
+        open_button = Button(root, text="Select Files", command=self.open_files)
+        open_button.pack(pady=10)
         
         save_label = Label(root, text="Select output path", wraplength=350, justify="center")
         save_label.pack(pady=10)
@@ -129,32 +122,40 @@ class PackerGUI:
     def run(self):
         self.root.mainloop()
 
+    def open_files(self):
+        file_paths = filedialog.askopenfilenames(filetypes=[
+            ("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff;*.gif"),
+            ("PNG files", "*.png"),
+            ("JPEG files", "*.jpg;*.jpeg"),
+            ("BMP files", "*.bmp"),
+            ("TIFF files", "*.tiff"),
+            ("GIF files", "*.gif"),
+            ("All files", "*.*")
+        ])
+        # TODO: extract save_file_dialog()
+        if not file_paths:
+            return
+        output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
+            ("PNG files", "*.png"),
+            ("JPEG files", "*.jpg;*.jpeg"),
+            ("BMP files", "*.bmp"),
+            ("TIFF files", "*.tiff"),
+            ("GIF files", "*.gif"),
+            ("All files", "*.*")
+        ])
+        # TODO: extract checks and process_textures() call
+        if not output_path:
+            return
+        process_textures(file_paths, output_path)
+
 # GUI
-def open_file_dialog():
-    file_paths = filedialog.askopenfilenames(filetypes=[
-        ("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.tiff;*.gif"),
-        ("PNG files", "*.png"),
-        ("JPEG files", "*.jpg;*.jpeg"),
-        ("BMP files", "*.bmp"),
-        ("TIFF files", "*.tiff"),
-        ("GIF files", "*.gif"),
-        ("All files", "*.*")
-    ])
-    # TODO: extract save_file_dialog()
-    if not file_paths:
-        return
-    output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
-        ("PNG files", "*.png"),
-        ("JPEG files", "*.jpg;*.jpeg"),
-        ("BMP files", "*.bmp"),
-        ("TIFF files", "*.tiff"),
-        ("GIF files", "*.gif"),
-        ("All files", "*.*")
-    ])
-    # TODO: extract checks and process_textures() call
-    if not output_path:
-        return
-    process_textures(file_paths, output_path)
+def process_textures(image_paths, output_path):
+    all_images = load_images(image_paths)
+    bounding_boxes = identify_bounding_boxes(all_images)
+    packed_positions = pack(all_images, bounding_boxes)
+    output_image = generate_image(all_images, packed_positions)
+    output_image.save(output_path) # Save the packed image
+
 
 if __name__ == "__main__":
     app = PackerGUI()
