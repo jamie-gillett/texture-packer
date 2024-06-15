@@ -25,15 +25,15 @@ class Packer:
             # Check if the image is fully opaque
             if np.all(image_array[:, :, 3] == 255):
                 # Treat the entire image as a single box
-                boxes = [(0, 0, image_array.shape[1], image_array.shape[0])]  # x-offset, y-offset, width, height
+                boxes = [((0, 0, image_array.shape[1], image_array.shape[0]),i)]  # x-offset, y-offset, width, height
             else:
                 gray = cv2.cvtColor(image_array, cv2.COLOR_RGBA2GRAY)
                 _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
                 contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                boxes = [cv2.boundingRect(contour) for contour in contours]
+                boxes = [((x,y,w,h),i) for x,y,w,h in [cv2.boundingRect(contour) for contour in contours]]
                 if not boxes:
-                    boxes = [(0, 0, image_array.shape[1], image_array.shape[0])] # Ensure at least one boudning box
-            bounding_boxes.extend([(box, i) for box in boxes]) # Store bounding boxes with their corresponding image index
+                    boxes = [((0, 0, image_array.shape[1], image_array.shape[0]),i)] # Ensure at least one bounding box
+            bounding_boxes.extend(boxes)
         bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0][3], reverse=True) # Sort bounding_boxes by height (largest to smallest)
         return bounding_boxes
 
