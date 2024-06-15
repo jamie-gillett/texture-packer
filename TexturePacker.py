@@ -88,14 +88,14 @@ def generate_image(all_images, packed_positions):
     packed_image = Image.fromarray(packed_image_np) # Convert back to Image
     return packed_image
 
-
-# GUI/Packer
+# PACKER
 def process_textures(image_paths, output_path):
     all_images = load_images(image_paths)
     bounding_boxes = identify_bounding_boxes(all_images)
     packed_positions = pack(all_images, bounding_boxes)
     output_image = generate_image(all_images, packed_positions)
-    output_image.save(output_path) # Save the packed image
+    output_image.save(output_path)
+
 
 
 class PackerGUI:
@@ -109,20 +109,20 @@ class PackerGUI:
         root.title("Texture Packer")
         root.geometry("400x250")
 
-        label = Label(root, text="Select image files to pack", wraplength=350, justify="center")
-        label.pack(pady=10)
+        self.input_label = Label(root, text="Select image files to pack", wraplength=350, justify="center")
+        self.input_label.pack(pady=10)
 
-        open_button = Button(root, text="Select Files", command=self.open_files)
-        open_button.pack(pady=10)
+        self.open_button = Button(root, text="Select Files", command=self.open_files)
+        self.open_button.pack(pady=10)
         
-        save_label = Label(root, text="Select output path", wraplength=350, justify="center")
-        save_label.pack(pady=10)
+        self.output_label = Label(root, text="Select output path", wraplength=350, justify="center")
+        self.output_label.pack(pady=10)
 
-        select_save_button = Button(root, text="Save Location")
-        select_save_button.pack(pady=10)
+        self.savepath_button = Button(root, text="Save Location", command=self.save_path)
+        self.savepath_button.pack(pady=10)
 
-        run_button = Button(root, text="Run")
-        run_button.pack(pady=10)
+        self.run_button = Button(root, text="Run", command=self.run)
+        self.run_button.pack(pady=10)
         
         return root
     
@@ -139,9 +139,10 @@ class PackerGUI:
             ("GIF files", "*.gif"),
             ("All files", "*.*")
         ])
-        # TODO: extract save_file_dialog()
-        if not self.filepaths:
-            return
+        if self.filepaths:
+            self.input_label.config(text="Image Files Selected")     
+        
+    def save_path(self):
         self.output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
             ("PNG files", "*.png"),
             ("JPEG files", "*.jpg;*.jpeg"),
@@ -150,10 +151,20 @@ class PackerGUI:
             ("GIF files", "*.gif"),
             ("All files", "*.*")
         ])
-        # TODO: extract checks and process_textures() call
-        if not self.output_path:
+        if self.output_path:
+            self.output_label.config(text="Output Path Selected")
+            
+    def run(self):
+        if not (self.filepaths and self.output_path):
+            print("<!> Need to select both input images and output path.")
             return
         process_textures(self.filepaths, self.output_path)
+        print("Job done.")
+        self.filepaths = None
+        self.input_label.config(text="Select Files")
+        self.output_path = None
+        self.output_label.config(text="Select output path")
+
 
 
 if __name__ == "__main__":
