@@ -89,12 +89,12 @@ def generate_image(all_images, packed_positions):
     return packed_image
 
 # PACKER
-def process_textures(image_paths, output_path):
+def process_textures(image_paths):
     all_images = load_images(image_paths)
     bounding_boxes = identify_bounding_boxes(all_images)
     packed_positions = pack(all_images, bounding_boxes)
     output_image = generate_image(all_images, packed_positions)
-    output_image.save(output_path)
+    return output_image
 
 
 
@@ -143,6 +143,7 @@ class PackerGUI:
             self.input_label.config(text="Image Files Selected")     
         
     def save_path(self):
+        # TODO: Perhaps separate out the saving to be done after the processing (add check for self.output_image)
         self.output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[
             ("PNG files", "*.png"),
             ("JPEG files", "*.jpg;*.jpeg"),
@@ -158,13 +159,13 @@ class PackerGUI:
         if not (self.filepaths and self.output_path):
             print("<!> Need to select both input images and output path.")
             return
-        process_textures(self.filepaths, self.output_path)
+        self.output_image = process_textures(self.filepaths) # saved as instance variable in case decide to separate saving
+        self.output_image.save(self.output_path)
         print("Job done.")
         self.filepaths = None
         self.input_label.config(text="Select Files")
         self.output_path = None
         self.output_label.config(text="Select output path")
-
 
 
 if __name__ == "__main__":
