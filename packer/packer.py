@@ -4,14 +4,27 @@ import cv2
 
 class Packing_Strategy:
     def __init__(self, progress_info=True) -> None:
-        self.use_images_for_packing_bounds = True
+        self.use_images_for_packing_bounds = False
         self.progress_info = progress_info
-    def calculate_packing_bounds(self):
-        raise NotImplementedError("Calculate packing bounds not implemented!")
+
+    def calculate_packing_bounds(self, box_dimensions):
+        if self.progress_info: print("<F> calculating packing bounds")
+        width = max(
+            max(box[0] for box in box_dimensions),
+            int(np.sqrt(sum([width*height for width,height in box_dimensions])))
+            )
+        height = None
+        return width, height
+
     def pack(self):
         raise NotImplementedError("Pack not implemented!")
 
+
 class OG_Strategy(Packing_Strategy):
+    def __init__(self, progress_info=True) -> None:
+        super().__init__(progress_info)
+        self.use_images_for_packing_bounds = True
+
     def calculate_packing_bounds(self, images):
         if self.progress_info: print("<F> calculating packing bounds")
         width = max(image.shape[1] for image in images)
@@ -58,33 +71,48 @@ class OG_Strategy(Packing_Strategy):
                     empty_areas.append(area_split)
             if self.progress_info: print(f"<P> {n+1}")
         return new_coordinates
-    
+
+
 class NFDH(Packing_Strategy):
-    def __init__(self, progress_info=True) -> None:
-        super().__init__(progress_info)
-        self.use_images_for_packing_bounds = False
-
-    def calculate_packing_bounds(self, box_dimensions):
-        if self.progress_info: print("<F> calculating packing bounds")
-        width = max(
-            max(box[0] for box in box_dimensions),
-            int(np.sqrt(sum([width*height for width,height in box_dimensions])))
-            )
-        height = None
-        return width, height
-
-    def pack(self):
+    def pack(self, box_dimensions, bounds):
         # Next-Fit Decreasing Height
-        raise NotImplementedError("Pack not implemented!")
+        if self.progress_info:
+            print("<F> packing textures")
+            print(f"<T> {len(box_dimensions)}")
+        strip_width = bounds[0]
+        levels = []
+        strip_height = 0
+        new_coordinates = []
+        for i, (box_width, box_height) in enumerate(box_dimensions):
+            packed = False
+            for level in levels:
+                if not level: continue
+                if packed: continue
+                if level["remaining"] >= box_width:
+                    new_coordinates.append((strip_width-level["remaining"],level["base"]))
+                    level["remaining"] -= box_width
+                    packed = True
+                    if self.progress_info: print(f"<P> {i+1}")
+            if not packed:
+                new_coordinates.append((0,strip_height))
+                if self.progress_info: print(f"<P> {i+1}")
+                new_level = {
+                    "base": strip_height,
+                    "remaining": strip_width - box_width
+                }
+                levels.append(new_level)
+                strip_height += box_height
+        return new_coordinates
 
 
 
 
 
 class Packer:
-    def __init__(self, progress_info=True, strategy=OG_Strategy) -> None:
+    def __init__(self, progress_info=True) -> None:
         self.progress_info = progress_info
-        self.strategy = strategy(progress_info)
+        # self.strategy = OG_Strategy(progress_info)
+        self.strategy = NFDH(progress_info)
 
     def load_images(self, image_paths):
         if self.progress_info:
@@ -150,7 +178,7 @@ class Packer:
         if self.strategy.use_images_for_packing_bounds:
             packing_bounds = self.strategy.calculate_packing_bounds(images)
         else:
-            self.strategy.calculate_packing_bounds(texture_dimensions)
+            packing_bounds = self.strategy.calculate_packing_bounds(texture_dimensions)
         new_coordinates = self.strategy.pack(texture_dimensions, packing_bounds)
         output_image = self.generate_image(images, original_coordinates, texture_dimensions, new_coordinates, texture_image_indices)
         if self.progress_info: print("<!> FINISHED")
