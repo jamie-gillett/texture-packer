@@ -12,9 +12,12 @@ class Packer:
         self.verbose = verbose
 
     def load_images(self, image_paths):
-        if self.verbose: print("load_images")
+        if self.verbose:
+            print("<F> loading images")
+            print(f"<T> {len(image_paths)}")
         image_arrays = []
-        for image_path in image_paths:
+        for i, image_path in enumerate(image_paths):
+            if self.verbose: print(f"<E> loading {image_path}")
             image = Image.open(image_path)
             image_array = np.array(image)
             # Add an alpha channel if it doesn't exist
@@ -22,6 +25,7 @@ class Packer:
                 alpha_channel = np.ones((image_array.shape[0], image_array.shape[1], 1), dtype=np.uint8) * 255
                 image_array = np.concatenate((image_array, alpha_channel), axis=2)
             image_arrays.append(image_array)
+            if self.verbose: print(f"<P> {i+1}")
         return image_arrays
 
     def identify_bounding_boxes(self, image_arrays):
