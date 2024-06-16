@@ -2,10 +2,12 @@ import numpy as np
 from PIL import Image
 import cv2
 
+# # # DOING THESE METHOD BY METHOD
 # TODO: Go through and clean up code
+# TODO: Create proper print outs for verbose (incl. formatting)
+# # # TO BE COMPLETED WHENEVER
 # TODO: Replace packing bounds calculation
 # TODO: Replace packing algorithm
-# TODO: Create proper print outs for verbose (incl. formatting)
 
 class Packer:
     def __init__(self, verbose=True) -> None:
@@ -14,10 +16,9 @@ class Packer:
     def load_images(self, image_paths):
         if self.verbose:
             print("<F> loading images")
-            print(f"<T> {len(image_paths)}")
+            print(f"<T> {len(image_paths)}:Total")
         image_arrays = []
         for i, image_path in enumerate(image_paths):
-            if self.verbose: print(f"<E> loading {image_path}")
             image = Image.open(image_path)
             image_array = np.array(image)
             # Add an alpha channel if it doesn't exist
@@ -25,27 +26,29 @@ class Packer:
                 alpha_channel = np.ones((image_array.shape[0], image_array.shape[1], 1), dtype=np.uint8) * 255
                 image_array = np.concatenate((image_array, alpha_channel), axis=2)
             image_arrays.append(image_array)
-            if self.verbose: print(f"<P> {i+1}")
+            if self.verbose: print(f"<P> {i+1}:Complete")
         return image_arrays
 
-    def identify_bounding_boxes(self, image_arrays):
-        if self.verbose: print("identify_bounding_boxes")
-        bounding_boxes = []
+    def identify_textures(self, image_arrays):
+        if self.verbose:
+            print("<F> identifying textures")
+            print(f"<T> {len(image_arrays)}:Total")
+        all_textures = []
         for i, image_array in enumerate(image_arrays):
-            # Check if the image is fully opaque
+            # Check if the image is fully opaque and treat the entire image as a single texture if it is
             if np.all(image_array[:, :, 3] == 255):
-                # Treat the entire image as a single box
-                boxes = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)]  # ((x-offset, y-offset), (width, height), image index)
+                textures = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)]  # ((x-offset, y-offset), (width, height), image index)
             else:
                 gray = cv2.cvtColor(image_array, cv2.COLOR_RGBA2GRAY)
                 _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
                 contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                boxes = [((x,y),(w,h),i) for x,y,w,h in [cv2.boundingRect(contour) for contour in contours]]
-                if not boxes:
-                    boxes = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)] # Ensure at least one bounding box
-            bounding_boxes.extend(boxes)
-        bounding_boxes = sorted(bounding_boxes, key=lambda x: x[1][1], reverse=True) # Sort bounding_boxes by height (largest to smallest)
-        coordinates, dimensions, image_indices = [_ for _ in list(zip(*bounding_boxes))]
+                textures = [((x,y),(w,h),i) for x,y,w,h in [cv2.boundingRect(contour) for contour in contours]]
+                if not textures:
+                    textures = [((0, 0), (image_array.shape[1], image_array.shape[0]),i)] # Treat the entire image as a texture
+            all_textures.extend(textures)
+            if self.verbose: print(f"<P> {i+1}:Complete")
+        all_textures = sorted(all_textures, key=lambda x: x[1][1], reverse=True) # Sort textures by height (largest to smallest)
+        coordinates, dimensions, image_indices = [_ for _ in list(zip(*all_textures))]
         return coordinates, dimensions, image_indices
     
     def calculate_packing_bounds(self, images):
@@ -110,7 +113,7 @@ class Packer:
 
     def process_textures(self, image_paths):
         images = self.load_images(image_paths)
-        original_coordinates, texture_dimensions, texture_image_indices = self.identify_bounding_boxes(images)
+        original_coordinates, texture_dimensions, texture_image_indices = self.identify_textures(images)
         packing_bounds = self.calculate_packing_bounds(images)
         new_coordinates = self.pack(packing_bounds, texture_dimensions)
         output_image = self.generate_image(images, original_coordinates, texture_dimensions, new_coordinates, texture_image_indices)
