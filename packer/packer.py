@@ -3,7 +3,7 @@ from PIL import Image
 import cv2
 
 class Packing_Strategy:
-    def __init__(self, progress_info=True) -> None:
+    def __init__(self, progress_info=False) -> None:
         self.use_images_for_packing_bounds = False
         self.progress_info = progress_info
 
@@ -109,10 +109,10 @@ class NFDH(Packing_Strategy):
 
 
 class Packer:
-    def __init__(self, progress_info=True) -> None:
+    def __init__(self, progress_info=False, strategy=NFDH) -> None:
         self.progress_info = progress_info
         # self.strategy = OG_Strategy(progress_info)
-        self.strategy = NFDH(progress_info)
+        self.strategy = strategy(progress_info)
 
     def load_images(self, image_paths):
         if self.progress_info:
@@ -183,5 +183,3 @@ class Packer:
         output_image = self.generate_image(images, original_coordinates, texture_dimensions, new_coordinates, texture_image_indices)
         if self.progress_info: print("<!> FINISHED")
         return output_image
-
-

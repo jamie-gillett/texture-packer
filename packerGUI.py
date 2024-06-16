@@ -9,7 +9,7 @@ class PackerGUI:
         self.filepaths = None
         self.output_path = None
         self.root = self.app_setup()
-        self.packer = Packer()
+        self.packer = Packer(progress_info=True)
         
     def app_setup(self):
         root = Tk()
