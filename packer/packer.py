@@ -6,7 +6,6 @@ import cv2
 # TODO: Go through and clean up code
 # TODO: Create proper print outs for verbose (incl. formatting)
 # # # TO BE COMPLETED WHENEVER
-# TODO: Replace packing bounds calculation
 # TODO: Replace packing algorithm
 
 class Packer:
@@ -50,15 +49,19 @@ class Packer:
         all_textures = sorted(all_textures, key=lambda x: x[1][1], reverse=True) # Sort textures by height (largest to smallest)
         coordinates, dimensions, image_indices = [_ for _ in list(zip(*all_textures))]
         return coordinates, dimensions, image_indices
-    
-    def calculate_packing_bounds(self, images):
-        if self.verbose: print("calculate_packing_bounds")
-        width = max(image.shape[1] for image in images)
-        height = sum(image.shape[0] for image in images)
+
+    def calculate_packing_bounds(self, box_dimensions):
+        # Might move this back now it doesn't use images (especially when height isn't specified in pack)
+        if self.verbose: print("<F> calculating packing bounds")
+        width = max(
+            max(box[0] for box in box_dimensions),
+            int(np.sqrt(sum([width*height for width,height in box_dimensions])))
+            )
+        height = sum(box[1] for box in box_dimensions)
         return width, height
 
     def pack(self, bounds, box_dimensions):
-        if self.verbose: print("pack")
+        if self.verbose: print("<F> packing textures")
         new_coordinates = []
         max_width, max_height = bounds
         empty_areas = [((0, 0), (max_width, max_height))]
@@ -95,7 +98,7 @@ class Packer:
         return new_coordinates
 
     def generate_image(self, images, original_coordinates, texture_dimensions, new_coordinates, image_indices):
-        if self.verbose: print("generate_image")
+        if self.verbose: print("<F> generating new image")
         n = len(original_coordinates)
         # Calculuate the new image size
         max_width = max(new_coordinates[i][0]+texture_dimensions[i][0] for i in range(n))
@@ -114,7 +117,8 @@ class Packer:
     def process_textures(self, image_paths):
         images = self.load_images(image_paths)
         original_coordinates, texture_dimensions, texture_image_indices = self.identify_textures(images)
-        packing_bounds = self.calculate_packing_bounds(images)
+        packing_bounds = self.calculate_packing_bounds(texture_dimensions)
         new_coordinates = self.pack(packing_bounds, texture_dimensions)
         output_image = self.generate_image(images, original_coordinates, texture_dimensions, new_coordinates, texture_image_indices)
+        if self.verbose: print("<!> FINISHED")
         return output_image
