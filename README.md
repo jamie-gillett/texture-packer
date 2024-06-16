@@ -36,3 +36,9 @@ class MyStrategy(Packing_Strategy):
 
 pkr = Packer(strategy=MyStrategy)
 ```
+
+## Future Work
+Some of the future work to be added:
+ - Work on the GUI
+ - Add optional padding between textures
+ - Improve packing algorithm (allow packing in deadspace below textures within a level)
